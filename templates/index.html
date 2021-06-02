@@ -1,0 +1,62 @@
+{% extends "import.html" %} 
+{% block content %}
+
+<center>
+    
+     
+      <!-- Video Element & Canvas -->
+      <div class="play-area">
+        <div class="play-area-sub">
+          <h3>The Stream</h3>
+          <video id="stream"  width="210px" height="200px"></video>
+        </div>
+       
+      </div>
+
+      <div class="button-group">
+        <div class="btn-group me-2"> 
+          <button id="btn-start" type="button" class="btn btn-primary">Start Camera</button>
+        </div>
+        <div class="btn-group me-2" >
+          <button id="btn-stop" type="button" class="btn btn-secondary" >Stop Camera</button>
+        </div>
+        <div class="btn-group me-2">
+          <button id="btn-capture" type="button" class="btn btn-success">Capture Image</button>
+        </div>
+               
+      </div>
+
+      <div class = "btn-2">
+        <a href = "{{ url_for('index') }}"><button type="button" class="btn btn-danger">Capture Again</button></a>
+      </div>
+
+
+      <div class="img-take"> <div class = "mt-4">
+        <h3>The Capture</h3>
+        <canvas id="capture" width="256px" height="256px"></canvas>
+        <div id="snap"></div>
+      </div></div>
+
+      <div class = "mt-4">
+        <div class = "take">
+          <form method="POST" enctype="multipart/form-data" id="myForm">
+       
+          <input type="button" class="btn btn-info btn-lg " value="Upload" onclick="upload()">
+      
+         </form>
+        </div>
+      </div>
+
+      <div class="loader" style="display:none;"></div>
+       <h3 id="result">
+        <span> </span>
+    </h3>
+
+
+    
+
+
+
+
+</center><br><br>
+{% endblock %}

@@ -1,0 +1,210 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Face Mask Verification App</title>
+    
+    <link href="https://cdn.bootcss.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">      
+   
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-info">
+        <div class="d-flex w-50 order-0">
+                <a class="navbar-brand mr-1" href="#">
+                     <h2>Face Mask Verification </h2>
+                </a>
+        </div>
+            
+            
+           
+
+            
+           
+        </div>
+    </nav>
+    <div class="container">
+        <div id="content" style="margin-top:2em">{% block content %}{% endblock %}</div>
+
+
+
+
+    </div>
+
+    <script>
+
+
+$('.img-take').hide();
+$('.take').hide();
+$('.play-area').hide();
+$('.btn-2').hide();
+$('.loader').hide();
+
+var btnStart = document.getElementById( "btn-start" );
+var btnStop = document.getElementById( "btn-stop" );
+var btnCapture = document.getElementById( "btn-capture" );
+
+// The stream & capture
+var stream = document.getElementById( "stream" );
+var capture = document.getElementById( "capture" );
+var snapshot = document.getElementById( "snapshot" );
+
+// The video stream
+var cameraStream = null;
+
+// Attach listeners
+btnStart.addEventListener( "click", startStreaming );
+btnStop.addEventListener( "click", stopStreaming );
+
+function startStreaming() {
+
+$('.play-area').fadeIn(600)  
+
+var mediaSupport = 'mediaDevices' in navigator;
+
+if( mediaSupport && null == cameraStream ) {
+
+    navigator.mediaDevices.getUserMedia( { video: true } )
+    .then( function( mediaStream ) {
+
+        cameraStream = mediaStream;
+
+        stream.srcObject = mediaStream;
+
+        stream.play();
+    })
+    .catch( function( err ) {
+
+        console.log( "Unable to access camera: " + err );
+    });
+}
+else {
+
+    alert( 'Your browser does not support media devices.' );
+
+    return;
+   
+}
+}
+
+// Stop Streaming
+function stopStreaming() {
+
+if( null != cameraStream ) {
+
+    var track = cameraStream.getTracks()[ 0 ];
+
+    track.stop();
+    stream.load();
+
+    cameraStream = null;
+}
+}
+
+btnCapture.addEventListener( "click", captureSnapshot );
+
+function captureSnapshot() {
+
+	if( null != cameraStream ) {
+
+		var ctx = capture.getContext( '2d' );
+		var img = new Image();
+
+		ctx.drawImage( stream, 0, 0, capture.width, capture.height );
+
+        document.getElementById('snap').innerHTML = 
+        '<img id="image" class="img-thumbnail" src="'+capture.toDataURL( "image/png" )+'" width="256px" height="256px" />';
+        $('.btn-2').show();
+        $('.button-group').hide();
+        $('.img-take').fadeIn(600);
+        $('.take').fadeIn(600);
+        $('.play-area').hide();
+
+    }
+
+}
+
+function upload() {
+    console.log("Uploading...")
+   var image = document.getElementById('image').src;
+    var form = document.getElementById('myForm');
+    image = dataURItoBlob(image)
+    var formData = new FormData(form);
+    formData.append("file", image);
+
+    $('.loader').show();
+    $('.take').hide();
+
+    $.ajax({
+            type: 'POST',
+            url: '/upload',
+            data: formData,
+            contentType: false,
+            cache: false,
+            processData: false,
+            async: true,
+            success: function (data) {
+                // Get and display the result
+
+                $('.loader').hide();
+               
+                $('#result').text(' Result:  ' + data);
+                console.log('Success!');
+            },
+        });
+    
+    /*var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("POST", "/upload");
+    xmlhttp.send(formData);
+   */
+      
+
+}
+
+
+
+function dataURItoBlob( dataURI ) {
+
+    var byteString;
+    if (dataURI.split(',')[0].indexOf('base64') >= 0)
+        byteString = atob(dataURI.split(',')[1]);
+    else
+        byteString = unescape(dataURI.split(',')[1]);
+    // separate out the mime component
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    // write the bytes of the string to a typed array
+    var ia = new Uint8Array(byteString.length);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ia], {type:mimeString});
+}
+    
+    </script>
+
+  
+
+</body>
+
+<footer>
+    <div class="foot">
+
+    <b>Beta Version-2021</b><br>
+    <b>Developed By <a href="https://www.linkedin.com/in/xyfer17/">Naveen Kumar yadav</a></b>
+
+    </div>
+    
+</footer>
+
+
+
+
+</html>
