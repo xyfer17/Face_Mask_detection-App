@@ -3,106 +3,95 @@ import glob
 import numpy as np
 from PIL import Image
 import cv2
-import keras
-import mediapipe as mp
+from utils.anchor_generator import generate_anchors
+from utils.anchor_decode import decode_bbox
+from utils.nms import single_class_non_max_suppression
+
 
 # Flask utils
 from flask import Flask, redirect,url_for,request,render_template
 from werkzeug.utils import secure_filename
 from gevent.pywsgi import WSGIServer
-from flask_ngrok import run_with_ngrok
+#from flask_ngrok import run_with_ngrok
 
 app = Flask(__name__)
 #run_with_ngrok(app)
 
-path = 'model/mask.h5'
-proto = 'model/deploy.prototxt'
-resNet = 'model/res10_300x300_ssd_iter_140000.caffemodel'
+#model path
+proto = 'model/face_mask_detection.prototxt'
+model = 'model/face_mask_detection.caffemodel'
 
-model = keras.models.load_model(path)
+# anchor configuration
+feature_map_sizes = [[33, 33], [17, 17], [9, 9], [5, 5], [3, 3]]
+anchor_sizes = [[0.04, 0.056], [0.08, 0.11], [0.16, 0.22], [0.32, 0.45], [0.64, 0.72]]
+anchor_ratios = [[1, 0.62, 0.42]] * 5
 
-mpHands = mp.solutions.hands
-hands = mpHands.Hands()
-mpDraw = mp.solutions.drawing_utils
+# generate anchors
+anchors = generate_anchors(feature_map_sizes, anchor_sizes, anchor_ratios)
 
+anchors_exp = np.expand_dims(anchors, axis=0)
 
-
-mask_label = {0:'MASK',1:'NO MASK'}
-dist_label = {0:(0,255,0),1:(255,0,0)}
-
-
-def check(X,Y,img):
-
-    imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    results = hands.process(img)
-
-    if results.multi_hand_landmarks:
-        for handLms in results.multi_hand_landmarks:
-            for id, lm in enumerate(handLms.landmark):
-                # print(id, lm)
-                h, w, c = img.shape
-                cx, cy = int(lm.x * w), int(lm.y * h)
-
-                X.append(cx)
-                Y.append(cy)
+id2class = {0: 'Mask', 1: 'NoMask'}
+colors = ((0, 255, 0), (255, 0 , 0))
 
 
+def getOutputsNames(net):
+    # Get the names of all the layers in the network
+    layersNames = net.getLayerNames()
+    # Get the names of the output layers, i.e. the layers with unconnected outputs
+    return [layersNames[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
 
-def model_predict(img,model):
-    net  = cv2.dnn.readNetFromCaffe(proto, resNet)
-
-    image = cv2.imread(img)
-    (h,w) = image.shape[:2]
-    blob = cv2.dnn.blobFromImage(cv2.resize(image,(300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
-
+def inference(net, image, conf_thresh=0.5, iou_thresh=0.4, target_shape=(160, 160), draw_result=True, chinese=False):
+    height, width, _ = image.shape
+    blob = cv2.dnn.blobFromImage(image, scalefactor=1/255.0, size=target_shape)
     net.setInput(blob)
-    detections = net.forward()
-    count = 0
-    X=[]
-    Y=[]
+    y_bboxes_output, y_cls_output = net.forward(getOutputsNames(net))
+    # remove the batch dimension, for batch is always 1 for inference.
+    y_bboxes = decode_bbox(anchors_exp, y_bboxes_output)[0]
+    y_cls = y_cls_output[0]
+    # To speed up, do single class NMS, not multiple classes NMS.
+    bbox_max_scores = np.max(y_cls, axis=1)
+    bbox_max_score_classes = np.argmax(y_cls, axis=1)
 
-    res='Try Again and capture a bright photo'
+    # keep_idx is the alive bounding box after nms.
+    keep_idxs = single_class_non_max_suppression(y_bboxes, bbox_max_scores, conf_thresh=conf_thresh, iou_thresh=iou_thresh)
+    # keep_idxs  = cv2.dnn.NMSBoxes(y_bboxes.tolist(), bbox_max_scores.tolist(), conf_thresh, iou_thresh)[:,0]
+    cnt=0
+    res=''
+    tl = round(0.002 * (height + width) * 0.5) + 1  # line thickness
+    for idx in keep_idxs:
+        cnt+=1
+        conf = float(bbox_max_scores[idx])
+        class_id = bbox_max_score_classes[idx]
+        bbox = y_bboxes[idx]
+        res = id2class[class_id]
+        # clip the coordinate, avoid the value exceed the image boundary.
+        xmin = max(0, int(bbox[0] * width))
+        ymin = max(0, int(bbox[1] * height))
+        xmax = min(int(bbox[2] * width), width)
+        ymax = min(int(bbox[3] * height), height)
+        if draw_result:
+            cv2.rectangle(image, (xmin, ymin), (xmax, ymax), colors[class_id], thickness=tl)           
+            cv2.putText(image, "%d  %s: %.2f" % (cnt,id2class[class_id], conf), (xmin + 2, ymin - 2),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.8,colors[class_id])
+    return image,cnt,res
 
-    for i in range(0, detections.shape[2]):
-
-        confidence = detections[0, 0, i, 2]
-
-        if confidence > 0.6:
-            count+=1
 
 
-            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            (startX, startY, endX, endY) = box.astype("int")
 
-            #text = "{:.2f}%".format(confidence * 100) + 'Count ' + str(count)
-            y = startY - 10 if startY - 10 > 10 else startY + 10
-            check(X,Y,image)
-            crop = image[startY:endY,startX:endX]
-            crop = cv2.resize(crop,(224,224))
-            crop = np.reshape(crop,[1,224,224,3])/255.0
-            result = model.predict(crop)
-            
+def model_predict(img_path):
+    Net = cv2.dnn.readNet(model, proto)
+    img = cv2.imread(img_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    result,cnt,res = inference(Net, img, target_shape=(260, 260))
+    cv2.imwrite('static/uploads/res.jpg',result[:,:,::-1])
 
-            
-
-            if np.size(X)==0 and np.size(Y)==0:
-               
-                res = mask_label[result.argmax()]
-
-                
-            else:
-                res =  'Remove your hand from face.'
-                              
-
-            cv2.rectangle(image, (startX, startY), (endX, endY),dist_label[result.argmax()], 2)
-            cv2.putText(image,mask_label[result.argmax()], (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2) 
+    if cnt==1:
+        return res
     
-    if count>1:
-        return "Try Again"
-        
-    cv2.imwrite('static/uploads/res.jpg',image)
-    return res
+    return 'Try Again'
+    
 
 
 @app.route('/',methods=['GET'])
@@ -119,7 +108,7 @@ def upload():
         rgb_im.save('static/uploads/read.jpg')
         basepath = os.path.dirname(__file__)
         file_path = os.path.join(basepath,'static','uploads/read.jpg')
-        result = model_predict(file_path,model)
+        result = model_predict(file_path)
       
 
         return result
@@ -134,4 +123,4 @@ if __name__ == '__main__':
     
     #app.run(host="192.168.29.186", port=800, debug=False,ssl_context=('cert.pem', 'key.pem'))
 
-    app.run()
+    app.run(debug=True)
