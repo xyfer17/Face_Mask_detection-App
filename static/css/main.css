@@ -69,10 +69,10 @@ input[type="file"] {
     
     background-color: #222222;
     color:white;
-    margin-top:300px;
-    margin-bottom:300px;
+    position: fixed;
+    margin-bottom:500px;
     padding-top:30px;
-    padding-bottom: 30px;
+    padding-bottom: 1000px;
     padding-left:0px;
     text-align:center;
     margin-left: 0px;
@@ -84,6 +84,8 @@ input[type="file"] {
      
    
 }
+
+
   
   .play-area-sub {
     width: 47%;

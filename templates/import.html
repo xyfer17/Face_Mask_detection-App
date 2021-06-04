@@ -34,17 +34,18 @@
     <div class="container">
         <div id="content" style="margin-top:2em">{% block content %}{% endblock %}</div>
 
-
-
-
     </div>
+
+    
+
+
+    
 
     <script>
 
 
 $('.img-take').hide();
 $('.take').hide();
-$('.play-area').hide();
 $('.btn-2').hide();
 $('.loader').hide();
 
@@ -128,13 +129,7 @@ function captureSnapshot() {
         $('.take').fadeIn(600);
         $('.play-area').hide();
 
-    }
-
-}
-
-function upload() {
-    console.log("Uploading...")
-   var image = document.getElementById('image').src;
+    var image = document.getElementById('image').src;
     var form = document.getElementById('myForm');
     image = dataURItoBlob(image)
     var formData = new FormData(form);
@@ -156,18 +151,19 @@ function upload() {
 
                 $('.loader').hide();
                
-                $('#result').text(' Result:  ' + data);
+                $('#result').text(data);
                 console.log('Success!');
             },
         });
-    
-    /*var xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("POST", "/upload");
-    xmlhttp.send(formData);
-   */
-      
+
+
+
+
+    }
 
 }
+
+
 
 
 
@@ -192,17 +188,10 @@ function dataURItoBlob( dataURI ) {
 
   
 
+
+  
+
 </body>
-
-<footer>
-    <div class="foot">
-
-    <b>Beta Version-2021</b><br>
-    <b>Developed By <a href="https://www.linkedin.com/in/xyfer17/">Naveen Kumar yadav</a></b>
-
-    </div>
-    
-</footer>
 
 
 
