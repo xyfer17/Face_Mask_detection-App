@@ -49,8 +49,9 @@ $('.take').hide();
 $('.btn-2').hide();
 $('.loader').hide();
 
-var btnStart = document.getElementById( "btn-start" );
-var btnStop = document.getElementById( "btn-stop" );
+
+//var btnStart = document.getElementById( "btn-start" );
+//var btnStop = document.getElementById( "btn-stop" );
 var btnCapture = document.getElementById( "btn-capture" );
 
 // The stream & capture
@@ -62,10 +63,10 @@ var snapshot = document.getElementById( "snapshot" );
 var cameraStream = null;
 
 // Attach listeners
-btnStart.addEventListener( "click", startStreaming );
-btnStop.addEventListener( "click", stopStreaming );
+//btnStart.addEventListener( "click", startStreaming );
+//btnStop.addEventListener( "click", stopStreaming );
 
-function startStreaming() {
+window.onload = function(){
 
 $('.play-area').fadeIn(600)  
 
@@ -97,7 +98,8 @@ else {
 }
 
 // Stop Streaming
-function stopStreaming() {
+
+/*function stopStreaming() {
 
 if( null != cameraStream ) {
 
@@ -108,7 +110,7 @@ if( null != cameraStream ) {
 
     cameraStream = null;
 }
-}
+}*/
 
 btnCapture.addEventListener( "click", captureSnapshot );
 
@@ -124,7 +126,7 @@ function captureSnapshot() {
         document.getElementById('snap').innerHTML = 
         '<img id="image" class="img-thumbnail" src="'+capture.toDataURL( "image/png" )+'" width="256px" height="256px" />';
         $('.btn-2').show();
-        $('.button-group').hide();
+        $('.mt-3').hide();
         $('.img-take').fadeIn(600);
         $('.take').fadeIn(600);
         $('.play-area').hide();
@@ -192,8 +194,5 @@ function dataURItoBlob( dataURI ) {
   
 
 </body>
-
-
-
 
 </html>
