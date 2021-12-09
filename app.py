@@ -6,7 +6,6 @@ import cv2
 from utils.anchor_generator import generate_anchors
 from utils.anchor_decode import decode_bbox
 from utils.nms import single_class_non_max_suppression
-from twilio.rest import Client
 
 
 # Flask utils
@@ -42,19 +41,6 @@ def getOutputsNames(net):
     # Get the names of the output layers, i.e. the layers with unconnected outputs
     return [layersNames[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
-def sendMessage(message):
-    account_sid = 'ACd7ccc0456a532cd56ff03ad93105eb49'
-    auth_token = 'd7c48ccfe1f31754e1cb5a1c31b19688'
-    client = Client(account_sid, auth_token)
-
-    from_whatsapp_number = 'whatsapp:+14155238886'
-    to_whatsapp_number = 'whatsapp:+916267206606'
-
-    message = client.messages.create(body=message,
-                       media_url='https://face-mask-test.herokuapp.com/static/uploads/res.jpg',
-                       from_=from_whatsapp_number,
-                       to=to_whatsapp_number)
-    print(message.sid)
 
 
 
@@ -110,7 +96,7 @@ def model_predict(img_path):
 
     if cnt==1:
 
-        sendMessage(res)
+        
 
 
         return res
